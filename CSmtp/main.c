@@ -2,7 +2,7 @@
 /*Version:V1  函数指针封装版*/
 int main()
 {
-	CSmtp* smtp =  initSmtp("842831611@qq.com", "sthhxznovshqbbeg", "825943234@qq.com");
+	CSmtp* smtp =  initSmtp("xx@qq.com", "xx", "xx@qq.com");
 	
 	smtp->setPortDomain(25, "smtp.qq.com");
 	smtp->setMailContent("hello", "hello,本邮件来自Maye编写的C语言邮件发送系统，欢迎关注微信公众号<C语言Plus>,更多资料等着你哦~\n\
