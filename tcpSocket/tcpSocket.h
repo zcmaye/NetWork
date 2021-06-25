@@ -4,6 +4,7 @@
 #include<stdio.h>
 #include<WinSock2.h>				//头文件
 #pragma comment(lib,"ws2_32.lib")	//库文件
+#include<WS2tcpip.h>
 
 #define err(errMsg) printf("[error] %s failed,code %d \
 line:%d\n",errMsg, WSAGetLastError(),__LINE__);

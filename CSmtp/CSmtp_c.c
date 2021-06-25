@@ -1,10 +1,30 @@
 ﻿#include "CSmtp_c.h"
 
 #define built_in_function static	//内部函数，禁止在外部使用
+#define built_in_struct 	//内部结构体，禁止在外部使用
 
 const char* base64Encode(const char* origSigned, size_t origLength);
 built_in_function void FormatEmailHead(char* str);
+//设置邮件标题和正文内容
+void setMailContent(const char* title, const char* content);
+//设置端口号和域名
+void setPortDomain(uint16 port, const char* domain);
+//发送邮件
+enum ErrNo sendEmal();
+//添加附件
+void AddAttachment(const char* filePath);
+//删除附件
+void DeleteAttachment(const char* fileName);
+//发送附件
+enum ErrNo sendAttachment();
 
+
+/*@发送附件使用的文件结构体*/
+typedef struct
+{
+	char filePath[128];
+	char fileName[128];
+}FileInfo;
 /*@顺序表*/
 typedef struct
 {
@@ -31,11 +51,11 @@ built_in_function void push(FileInfo fileinfo)
 }
 built_in_function void erase(FileInfo fileinfo)
 {
-	for (int i = 0; i < g_list->size; i++)
+	for (size_t i = 0; i < g_list->size; i++)
 	{
 		if (strcmp(g_list->base[i].fileName, fileinfo.fileName) == 0)
 		{
-			for (int pos = i; pos < g_list->size - 1; pos++)
+			for (size_t pos = i; pos < g_list->size - 1; pos++)
 			{
 				g_list->base[pos] = g_list->base[pos + 1];
 			}
@@ -54,8 +74,7 @@ built_in_function Iterator end()
 	return &g_list->base[g_list->size];
 }
 
-/*@ 邮件所有信息结构提*/
-typedef struct CSmtp_c
+built_in_struct typedef struct CSmtp_info_
 {
 	char	userMail[30];			//用户邮箱
 	char	passwd[20];				//用户密码
@@ -67,66 +86,83 @@ typedef struct CSmtp_c
 	char	domain[20];				//服务器域名
 	SOCKET	fd;						//描述符
 	char	recvBuf[BUFSIZ + 1];	//接受数据的缓冲区
-}CSmtp;
+}CSmtp_info;
 CSmtp g_csmtp;
+//初始化成员函数
+void initFunctionPointer()
+{
+	g_csmtp.AddAttachment = AddAttachment;
+	g_csmtp.sendEmal = sendEmal;
+	g_csmtp.setMailContent = setMailContent;
+	g_csmtp.setPortDomain = setPortDomain;
+	g_csmtp.DeleteAttachment = DeleteAttachment;
+}
 
 //初始化邮件信息，用户名/密码/接收人邮箱
-void initSmtp(const char* userMain, const char* passwd, const char* toMail)
+CSmtp* initSmtp(const char* userMain, const char* passwd, const char* toMail)
 {
-	memset(&g_csmtp, 0, sizeof(CSmtp));
-	strcpy(g_csmtp.userMail, userMain);
-	strcpy(g_csmtp.passwd, passwd);
-	strcpy(g_csmtp.toMail, toMail);
+	g_csmtp.info = calloc(1, sizeof(CSmtp_info));
+	if (!g_csmtp.info)
+	{
+		print("line %d:initSmtp info init error\n", __LINE__);
+		return NULL;
+	}
+	strcpy(g_csmtp.info->userMail, userMain);
+	strcpy(g_csmtp.info->passwd, passwd);
+	strcpy(g_csmtp.info->toMail, toMail);
 
-	g_csmtp.port = 25;
-	strcpy(g_csmtp.domain, "smtp.qq.com");
-	g_csmtp.fd = 0;
-	memset(g_csmtp.recvBuf, 0, BUFSIZ + 1);
+	g_csmtp.info->port = 25;
+	strcpy(g_csmtp.info->domain, "smtp.qq.com");
+	g_csmtp.info->fd = 0;
+	memset(g_csmtp.info->recvBuf, 0, BUFSIZ + 1);
 
 	g_list = createSeqList();
+
+	initFunctionPointer();
+	return &g_csmtp;
 }
 //设置邮件标题和正文内容
 void setMailContent(const char* title, const char* content)
 {
-	strcpy(g_csmtp.title, title);
-	if (content != NULL && g_csmtp.contemt == NULL)
+	strcpy(g_csmtp.info->title, title);
+	if (content != NULL && g_csmtp.info->contemt == NULL)
 	{
 		int len = strlen(content);
-		g_csmtp.contemt = calloc(len + 1, sizeof(char));
-		if (!g_csmtp.contemt)
+		g_csmtp.info->contemt = calloc(len + 1, sizeof(char));
+		if (!g_csmtp.info->contemt)
 		{
-			printf("LINE %d setMailContent memory failed\n", __LINE__);
+			print("line %d: setMailContent memory failed\n", __LINE__);
 			return;
 		}
-		strcpy(g_csmtp.contemt, content);
+		strcpy(g_csmtp.info->contemt, content);
 	}
 }
 //设置端口号和域名
 void setPortDomain(uint16 port, const char* domain)
 {
-	g_csmtp.port = port;
-	strcpy(g_csmtp.domain, domain);
+	g_csmtp.info->port = port;
+	strcpy(g_csmtp.info->domain, domain);
 }
 
 //从socket接受消息
 built_in_function bool recvMsg()
 {
-	int ret = recv(g_csmtp.fd, g_csmtp.recvBuf, BUFSIZ, 0);
+	int ret = recv(g_csmtp.info->fd, g_csmtp.info->recvBuf, BUFSIZ, 0);
 	if (ret == SOCKET_ERROR)
 	{
+		print("line %d:recvMsg recv error code (%d)\n", __LINE__,WSAGetLastError());
 		return false;
 	}
-	g_csmtp.recvBuf[ret] = '\0';
-	printf("recv> %s\n", g_csmtp.recvBuf);
+	g_csmtp.info->recvBuf[ret] = '\0';
+	printf("recv> %s\n", g_csmtp.info->recvBuf);
 	return true;
 }
 //向socket发送消息
 built_in_function bool sendMsg(const char* msg)
 {
-	if (SOCKET_ERROR == send(g_csmtp.fd, msg, strlen(msg), 0))
+	if (SOCKET_ERROR == send(g_csmtp.info->fd, msg, strlen(msg), 0))
 	{
-		int ret = WSAGetLastError();
-		log("send");
+		print("line %d:sendMsg send error code (%d)\n", __LINE__, WSAGetLastError());
 		return false;
 	}
 	printf("send> %s\n", msg);
@@ -138,7 +174,7 @@ built_in_function bool connectToHost()
 	init_Socket();		//初始化socket库
 
 	//根据域名获取主机的信息
-	struct hostent* hostInfo = gethostbyname(g_csmtp.domain);
+	struct hostent* hostInfo = gethostbyname(g_csmtp.info->domain);
 
 	//const char* tdomain = inet_ntoa(*(struct in_addr*)&hostInfo->h_addr_list[0]);
 	//DWORD  ipnum = *(DWORD*)hostInfo->h_addr_list[0];
@@ -151,10 +187,10 @@ built_in_function bool connectToHost()
 	inet_ntop(AF_INET, hostInfo->h_addr_list[0], hostIp, 50);
 
 	//连接到服务器
-	g_csmtp.fd = create_clientSocket(hostIp, g_csmtp.port);
-	if (g_csmtp.fd == INVALID_SOCKET)
+	g_csmtp.info->fd = create_clientSocket(hostIp, g_csmtp.info->port);
+	if (g_csmtp.info->fd == INVALID_SOCKET)
 	{
-		log("create_clientSocket");
+		print("line %d:connectToHost SOCKET error code (%d)\n", __LINE__, WSAGetLastError());
 		return false;
 	}
 	return recvMsg();
@@ -164,7 +200,7 @@ built_in_function bool connectToHost()
 built_in_function enum ErrNo login()
 {
 	char sendBuf[BUFSIZ] = { 0 };
-	sprintf(sendBuf, "EHLO %s \r\n", g_csmtp.userMail);
+	sprintf(sendBuf, "EHLO %s \r\n", g_csmtp.info->userMail);
 	if (!sendMsg(sendBuf) || !recvMsg())
 	{
 		return NetWorkError;
@@ -177,7 +213,7 @@ built_in_function enum ErrNo login()
 	}
 
 	//发送账号
-	char* encode = base64Encode(g_csmtp.userMail, strlen(g_csmtp.userMail));
+	char* encode = base64Encode(g_csmtp.info->userMail, strlen(g_csmtp.info->userMail));
 	sprintf(sendBuf, "%s\r\n%c", encode, '\0');
 	free(encode);
 	if (!sendMsg(sendBuf) || !recvMsg())
@@ -186,7 +222,7 @@ built_in_function enum ErrNo login()
 	}
 
 	//发送密码
-	encode = base64Encode(g_csmtp.passwd, strlen(g_csmtp.passwd));
+	encode = base64Encode(g_csmtp.info->passwd, strlen(g_csmtp.info->passwd));
 	sprintf(sendBuf, "%s\r\n%c", encode, '\0');
 	free(encode);
 	if (!sendMsg(sendBuf) || !recvMsg())
@@ -195,12 +231,14 @@ built_in_function enum ErrNo login()
 	}
 
 	//检查是否登录成功
-	if (strstr(g_csmtp.recvBuf, "550"))
+	if (strstr(g_csmtp.info->recvBuf, "550"))
 	{
+		print("line %d:login user error\n", __LINE__);
 		return UserNameError;
 	}
-	if (strstr(g_csmtp.recvBuf, "535"))
+	if (strstr(g_csmtp.info->recvBuf, "535"))
 	{
+		print("line %d:login passwd error\n", __LINE__);
 		return UserPassError;
 	}
 	return NoError;
@@ -209,13 +247,13 @@ built_in_function enum ErrNo login()
 built_in_function bool sendEmailHead()
 {
 	char sendBuf[BUFSIZ] = { 0 };
-	sprintf(sendBuf, "MAIL FROM:<%s>\r\n%c", g_csmtp.userMail, '\0');
+	sprintf(sendBuf, "MAIL FROM:<%s>\r\n%c", g_csmtp.info->userMail, '\0');
 	if (!sendMsg(sendBuf) || !recvMsg())
 	{
 		return false;
 	}
 
-	sprintf(sendBuf, "RCPT TO:<%s>\r\n%c", g_csmtp.toMail, '\0');
+	sprintf(sendBuf, "RCPT TO:<%s>\r\n%c", g_csmtp.info->toMail, '\0');
 	if (!sendMsg(sendBuf) || !recvMsg())
 	{
 		return false;
@@ -233,6 +271,7 @@ built_in_function bool sendEmailHead()
 	{
 		return false;
 	}
+	return true;
 }
 //格式化邮件头部
 built_in_function void FormatEmailHead(char* str)
@@ -240,13 +279,13 @@ built_in_function void FormatEmailHead(char* str)
 	memset(str, 0, BUFSIZ);
 
 	char tstr[128] = { 0 };
-	sprintf(tstr, "From: %s\r\n%c", g_csmtp.userMail, '\0');
+	sprintf(tstr, "From: %s\r\n%c", g_csmtp.info->userMail, '\0');
 	strcat(str, tstr);
 
-	sprintf(tstr, "To: %s\r\n%c", g_csmtp.toMail, '\0');
+	sprintf(tstr, "To: %s\r\n%c", g_csmtp.info->toMail, '\0');
 	strcat(str, tstr);
 
-	sprintf(tstr, "Subject: %s\r\n%c", g_csmtp.title, '\0');
+	sprintf(tstr, "Subject: %s\r\n%c", g_csmtp.info->title, '\0');
 	strcat(str, tstr);
 
 	sprintf(tstr, "MINE-Version: 1.0\r\n%c", '\0');
@@ -264,7 +303,7 @@ built_in_function bool sendTextbody()
 	char sendBuf[BUFSIZ] = { 0 };
 	strcat(sendBuf, "--maye\r\n");
 	strcat(sendBuf, "Content-Type:text/plain;charset=\"gb2312\"\r\n\r\n");
-	strcat(sendBuf, g_csmtp.contemt);
+	strcat(sendBuf, g_csmtp.info->contemt);
 	strcat(sendBuf, "\r\n\r\n");
 	return sendMsg(sendBuf);
 }
@@ -307,11 +346,7 @@ enum ErrNo sendEmal()
 		return NetWorkError;
 	}
 
-	ret = sendAttachment();
-	if (ret != NoError)
-	{
-		return ret;
-	}
+	sendAttachment();
 
 	if (!sendEnd())
 	{
@@ -325,12 +360,27 @@ void AddAttachment(const char* filePath)
 	FileInfo info;
 	strcpy(info.filePath, filePath);
 	char* str = strrchr(filePath, '/');
-	if (str == NULL)
+	if (str != NULL)
 	{
-		str = strrchr(filePath, '\\');
+		strcpy(info.fileName, str + 1);
+		push(info);
+		return;
 	}
-	strcpy(info.fileName, str + 1);
-	push(info);
+
+	str = strrchr(filePath, '\\');
+	if (str != NULL)
+	{
+		strcpy(info.fileName, str + 1);
+		push(info);
+		return;
+	}
+	else
+	{
+		//在当前文件夹下，而且没有写./
+		strcpy(info.fileName, filePath);
+		push(info);
+		return;
+	}	
 }
 //删除附件
 void DeleteAttachment(const char* fileName)
@@ -345,9 +395,16 @@ enum ErrNo sendAttachment()
 	printf("begin send attachment ~~~~\n");
 	for (Iterator it = begin(); it != end(); it++)
 	{
+		FILE* fp = fopen(it->filePath, "rb");
+		if (!fp)
+		{
+			print("%s:文件打开失败~\n", it->filePath);
+			return FileOpenError;
+		}
+
 		char sendBuf[BUFSIZ] = { 0 };
 		char tempbuf[100] = { 0 };
-
+		//发送文件头部信息
 		strcat(sendBuf, "--maye\r\n");
 		strcat(sendBuf, "Content-Type:application/octet-stream;\r\n");
 		sprintf(tempbuf, " name=\"%s\"\r\n", it->fileName);//注意name前面必须要有空格（不知道啥原因）
@@ -358,17 +415,13 @@ enum ErrNo sendAttachment()
 		sprintf(tempbuf, "fileNmae=\"%s\"\r\n", it->fileName);
 		strcat(sendBuf, tempbuf);
 		strcat(sendBuf, "\r\n");
-		sendMsg(sendBuf);	//send
+		sendMsg(sendBuf);
 
-		FILE* fp = fopen(it->filePath, "rb");
-		if (!fp)
-		{
-			return FileOpenError;
-		}
-
+		//读取文件，加密并传送
 		char* fileBuf = (char*)calloc(SEND_FILE_SIZE + 1, sizeof(char));
 		if (fileBuf == NULL)
 		{
+			print("line %d:sendAttachment MenoryAllocError\n", __LINE__);
 			return MenoryAllocError;
 		}
 		char* encode = NULL;
@@ -376,11 +429,12 @@ enum ErrNo sendAttachment()
 		{
 			int size = fread(fileBuf, sizeof(char), SEND_FILE_SIZE, fp);
 			fileBuf[size] = '\0';
-			encode = base64Encode(fileBuf, strlen(fileBuf));
+			//encode = base64Encode(fileBuf, strlen(fileBuf));		//此种方法发送二进制文件时会出现问题
+			encode = base64Encode(fileBuf, size);
 			encode[strlen(encode)] = '\r';
 			encode[strlen(encode)] = '\n';
 			//sendMsg(encode);
-			send(g_csmtp.fd, encode, strlen(encode), 0);
+			send(g_csmtp.info->fd, encode, strlen(encode), 0);
 			free(encode);
 		}
 

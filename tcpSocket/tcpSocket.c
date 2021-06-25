@@ -71,7 +71,7 @@ SOCKET create_clientSocket(const char* ip,uint16 port)
 	inet_pton(AF_INET, ip, &addr.sin_addr);
 
 
-	if (INVALID_SOCKET == connect(fd, &addr, sizeof(addr)))
+	if (INVALID_SOCKET == connect(fd, (struct sockaddr*)&addr, sizeof(addr)))
 	{
 		err("connet");
 		return INVALID_SOCKET;
