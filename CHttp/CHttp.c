@@ -12,16 +12,17 @@ enum Method
 	M_PATCH,
 	M_OPTIONS
 };
+
 void accept_request(SOCKET fd)
 {
-	char resPath[128] = "./zcMaye";		//请求的资源路径
-	char url[128] = { 0 };			//请求的资源url
+	char resPath[128] = "./zcMaye";		//请求的资源路径(网站主目录)
+	char url[128] = { 0 };				//请求的资源url
 	int method = getMothedAndUrl(fd, url, 128);
 	switch (method)
 	{
 	case M_GET:
 		//printf("GET:->%s\n", url);
-		if (strcmp(url, "/") == 0)
+		if (stricmp(url, "/") == 0)
 		{
 			strcat_s(resPath, 128, "/index.html");
 		}
@@ -41,7 +42,7 @@ void accept_request(SOCKET fd)
 			//	;
 			//}
 			//文件不存返回404
-			not_found(fd);
+			notFound(fd);
 		}
 		else
 		{
@@ -51,11 +52,11 @@ void accept_request(SOCKET fd)
 		break;
 	case M_POST:
 		break;
+	case M_PUT:
+		break;
 	default:
 		break;
 	}
-
-	//closesocket(fd);
 }
 
 int getline(SOCKET fd, char* buf, int size)
@@ -94,25 +95,29 @@ int getMothedAndUrl(SOCKET fd, char* buf, int size)
 	i++;//跳过空格
 	printf("method:%s ", method);
 	//获取Url
-	int k = 0;
-	for (; recvBuf[i]!=' ' && i < strlen(recvBuf); i++)
+	
+	for (int k = 0; recvBuf[i]!=' ' && i < strlen(recvBuf); i++)
 	{
 		buf[k++] = recvBuf[i];
 	}
 
 
-	if (strcmp(method, "GET") == 0)
+	if (stricmp(method, "GET") == 0)
 	{
 		return M_GET;
 	}
-	else if (strcmp(method, "POST") == 0)
+	else if (stricmp(method, "POST") == 0)
 	{
 		return M_POST;
+	}
+	else if (stricmp(method, "PUT") == 0)
+	{
+		return M_PUT;
 	}
 	return M_ERROR;
 }
 
-void not_found(SOCKET fd)
+void notFound(SOCKET fd)
 {
 	char buf[1024];
 
@@ -125,19 +130,7 @@ void not_found(SOCKET fd)
 	sprintf(buf, "\r\n");
 	send(fd, buf, strlen(buf), 0);
 
-	FILE* fp = fopen("./zcMaye/notFound404.html", "rb");
-	if (!fp)
-	{
-		perror("open file failed");
-		return;
-	}
-	while (!feof(fp))
-	{
-		char buf[1024] = { 0 };
-		int len = fread(buf, sizeof(char), 1024, fp);
-		send(fd, buf, len, 0);
-	}
-	fclose(fp);
+	send_file(fd,"./zcMaye/notFound404.html");
 }
 
 void send_file(SOCKET fd, const char* fileName)
@@ -146,7 +139,7 @@ void send_file(SOCKET fd, const char* fileName)
 	if (!fp)
 	{
 		perror("open file failed");
-		not_found(fd);
+		notFound(fd);
 		return;
 	}
 	while (!feof(fp))
@@ -161,35 +154,87 @@ void send_file(SOCKET fd, const char* fileName)
 void headers(SOCKET fd, const char* filename)
 {
 	char buf[1024];
-
-	//获取文件后缀
-	char* beg = NULL;
-	if ((beg = strrchr(filename, '.'))==NULL)
-	{
-		printf("获取文件后缀失败~\n");
-		return;
-	}
-	//确定文件类型
-	char type[20] = { 0 };
-	if (strcmp(beg, ".png") == 0)
-	{
-		strcpy_s(type,20,"image/apng");
-	}
-	else if (strcmp(beg, ".html") == 0)
-	{
-		strcpy_s(type, 20, "text/html");
-	}
-	else if (strcmp(beg, ".css") == 0)
-	{
-		strcpy_s(type, 20, "text/css");
-	}
-
 	strcpy(buf, "HTTP/1.0 200 OK\r\n");
 	send(fd, buf, strlen(buf), 0);
 	strcpy(buf, SERVER_STRING);
 	send(fd, buf, strlen(buf), 0);
-	sprintf(buf, "Content-Type: %s\r\n",type);
+	sprintf(buf, "Content-Type: %s\r\n", getConentType(filename));
 	send(fd, buf, strlen(buf), 0);
+	sprintf(buf, "Content-length: %llu\r\n", getFileSize(filename));
+	send(fd, buf, strlen(buf), 0);
+	//sprintf(buf, "Transfer-Encoding: chunked\r\n");
+	//send(fd, buf, strlen(buf), 0);
 	strcpy(buf, "\r\n");
 	send(fd, buf, strlen(buf), 0);
+}
+
+const char* getConentType(const char* fileName)
+{
+	//获取文件后缀
+	char* beg = NULL;
+	if ((beg = strrchr(fileName, '.')) == NULL)
+	{
+		printf("获取文件后缀失败~\n");
+		return "text/unknow";
+	}
+	//常见的媒体格式类型
+	if (stricmp(beg, ".html") == 0)
+	{
+		return "text/html";
+	}
+	else if (stricmp(beg, ".css") == 0)
+	{
+		return "text/css";
+	}
+	else if (stricmp(beg, ".xml") == 0)
+	{
+		return "text/xml";
+	}
+	else if (stricmp(beg, ".png") == 0)
+	{
+		return "image/apng";
+	}
+	else if (stricmp(beg, ".gif") == 0)
+	{
+		return "image/gif";
+	}
+	else if (stricmp(beg, ".jpg") == 0 || stricmp(beg, ".jpeg") == 0)
+	{
+		return "image/jpeg";
+	}
+	//以application开头的媒体格式
+	else if (stricmp(beg, ".XHTML") == 0)
+	{
+		return "application/xhtml+xml";
+	}
+	else if (stricmp(beg, ".json") == 0)
+	{
+		return "application/json";
+	}
+	else if (stricmp(beg, ".pdf") == 0)
+	{
+		return "application/pdf";
+	}
+	// 二进制流数据（如常见的文件下载）
+	else if (
+		stricmp(beg, ".exe") == 0	||
+		stricmp(beg, ".zip") == 0	||
+		stricmp(beg, ".7z") == 0	||
+		stricmp(beg, ".gz") == 0	||
+		stricmp(beg, ".tar") == 0)
+	{
+		return "application/octet-stream";
+	}
+	return "text/plain";
+}
+
+size_t getFileSize(const char* fileName)
+{
+	struct _stat32i64 st = { 0 };
+	if (0 != _stat32i64(fileName, &st))
+	{
+		perror("stat failed");
+		return -1;
+	}
+	return (size_t)st.st_size;
 }

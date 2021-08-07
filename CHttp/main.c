@@ -4,7 +4,7 @@
 int main()
 {
 	init_Socket();
-	SOCKET serfd = create_serverSocket();
+	SOCKET serfd = create_serverSocket(80);
 	printf("Server start succeed,wait connect...\n");
 
 	while (true)
@@ -15,6 +15,7 @@ int main()
 			err("accept");
 		}
 		accept_request(clifd);
+		//closesocket(clifd);
 	}
 
 

@@ -6,7 +6,7 @@ int main()
 {
 	init_Socket();
 
-	SOCKET serfd = create_serverSocket();
+	SOCKET serfd = create_serverSocket(8888);
 	
 	while (true)
 	{
