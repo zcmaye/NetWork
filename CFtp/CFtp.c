@@ -1,5 +1,6 @@
 ﻿#include "CFtp.h"
 #include<sys/stat.h>
+#define TRANSFER_SIZE (100*1024*1024)	//每次传送的字节大小 100M
 //文件操作
 const char* getFileName(const char* filePath)
 {
@@ -17,7 +18,7 @@ const char* getFileName(const char* filePath)
 	return beg;
 }
 
-size_t getFileSize(const char* fileName)
+size_t getFileSize_self(const char* fileName)
 {
 	FILE* fp = fopen(fileName,"rb");
 	if (!fp)
@@ -39,6 +40,17 @@ size_t getFileSize(const char* fileName)
 	free(buf);
 	fclose(fp);
 	return totalSize;
+}
+
+size_t getFileSize(const char* fileName)
+{
+	struct _stat32i64 st = { 0 };
+	if (0 != _stat32i64(fileName, &st))
+	{
+		perror("stat failed");
+		return -1;
+	}
+	return (size_t)st.st_size;
 }
 
 FileInfo recvFileName(SOCKET fd)
@@ -65,14 +77,11 @@ FileInfo recvFileName(SOCKET fd)
 	strcpy(info.name, path);
 
 	//获取文件大小
-	struct stat st;
-	if (0 != stat(info.name, &st))
+	if ((info.size = getFileSize(info.name)) == 0)
 	{
-		perror("stat error");
-		return (FileInfo) {0,"NULL"};
-	}
-	info.size = st.st_size;
-	//info.size = getFileSize(info.name);
+		return (FileInfo) { 0, "NULL" };
+	}	
+	printf("fileSize:%llu fileName:%s\n", info.size, info.name);
 	return info;
 }
 
@@ -92,7 +101,7 @@ bool sendFile(SOCKET fd, FileInfo fileInfo)
 		perror("open file faile");
 		return false;
 	}
-	char* buf = calloc(1024 * 1024 + 1, sizeof(char));
+	char* buf = calloc(TRANSFER_SIZE, sizeof(char));
 	if (!buf)
 	{
 		printf("Menory failed\n");
@@ -102,17 +111,15 @@ bool sendFile(SOCKET fd, FileInfo fileInfo)
 	size_t sendSize = 0;
 	for (size_t i = 0; sendSize < fileInfo.size; i++)
 	{
-		int ret = fread(buf, sizeof(char), sizeof(buf), fp);
+		int ret = fread(buf, sizeof(char), TRANSFER_SIZE, fp);
 		if (SOCKET_ERROR == send(fd, buf, ret, 0))
 		{
 			err("send");
 			return false;
 		}
 		sendSize += ret;
-		//printf("send %d ,[%d]Byte sendsize:%d~\n", i, ret,sendSize);
 	}
 	free(buf);
-	printf("send succeed [%d]Byte\n", sendSize);
 	fclose(fp);
 	return true;
 }
@@ -146,7 +153,7 @@ bool recvFile(SOCKET fd, const char* fileName)
 		return false;
 	}
 
-	char* recvbuf = calloc(1024 * 1024 + 1, sizeof(char));
+	char* recvbuf = calloc(TRANSFER_SIZE, sizeof(char));
 	if (!recvbuf)
 	{
 		printf("recvbuf memory failed\n");
@@ -156,7 +163,7 @@ bool recvFile(SOCKET fd, const char* fileName)
 	FILE* fp = fopen(fileName, "wb");
 	for (size_t recvSize = 0; recvSize < fileSize;)
 	{
-		int ret = recv(fd, recvbuf, sizeof(recvbuf) - 1, 0);
+		int ret = recv(fd, recvbuf, TRANSFER_SIZE, 0);
 		fwrite(recvbuf, sizeof(char), ret, fp);
 		recvSize += ret;
 	}

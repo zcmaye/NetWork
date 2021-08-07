@@ -1,5 +1,6 @@
-#include"../CFtp/CFtp.h"
+﻿#include"../CFtp/CFtp.h"
 #pragma comment(lib,"TcpSocket.lib")
+#include<time.h>
 int main()
 {
 	init_Socket();
@@ -10,9 +11,12 @@ int main()
 	printf("download fileName>");
 	gets_s(fileName, 128);
 	sendFileName(fd, fileName);
+
+	clock_t beg = clock();
+
 	recvFile(fd, getFileName(fileName));
 
-	printf("end....\n");
+	printf("接受完毕，耗时：%lu\n",clock() -beg);
 	getchar();
 	closesocket(fd);
 	close_Socket();

@@ -8,13 +8,16 @@ typedef struct FileInfo_
 }FileInfo;
 
 const char* getFileName(const char* filePaht);
-size_t getFileSize(const fileName);
+//用文件操作获取文件大小，效率低
+size_t getFileSize_self(const char* fileName);
+//用sys/stat.h里面的函数获取文件大小，效率高
+size_t getFileSize(const char* fileNaem);
 
 
 /***服务器*****/
 //从客户端接受文件大小和文件名
 FileInfo recvFileName(SOCKET fd);
-//发送文件
+//给客户端发送文件
 bool sendFile(SOCKET fd,FileInfo fileInfo);
 
 /***客户端****/

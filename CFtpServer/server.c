@@ -1,5 +1,6 @@
 ﻿#include"../CFtp/CFtp.h"
 #pragma comment(lib,"TcpSocket.lib")
+#include<time.h>
 
 int main()
 {
@@ -17,9 +18,12 @@ int main()
 			continue;
 		}
 		FileInfo info = recvFileName(clifd);
+
+		clock_t beg = clock();
+
 		sendFile(clifd, info);
 
-		printf("size:%d name:%s\n\n", info.size, info.name);
+		printf("发送完毕，耗时%d\n", clock() - beg);
 	}
 
 
