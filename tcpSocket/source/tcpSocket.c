@@ -1,5 +1,6 @@
 ﻿#include"../include/tcpSocket.h"
 #include<WS2tcpip.h>
+
 bool init_Socket()
 {
 	WSADATA wsadata;
@@ -21,7 +22,7 @@ bool close_Socket()
 	return true;
 }
 
-SOCKET create_serverSocket()
+SOCKET create_serverSocket(uint16_t port)
 {
 	//1，创建一个空的socket
 	SOCKET fd = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
@@ -35,7 +36,7 @@ SOCKET create_serverSocket()
 	//2，给socket绑定本地ip地址和端口号
 	struct sockaddr_in addr;
 	addr.sin_family = AF_INET;
-	addr.sin_port = htons(PORT);			//把本地字节序转为网络字节序， 大端存储和小端存储
+	addr.sin_port = htons(port);			////0~1024 是系统保留，我们一般不用,把本地字节序转为网络字节序， 大端存储和小端存储
 	addr.sin_addr.S_un.S_addr = ADDR_ANY;	//绑定本地任意ip
 	
 	if (SOCKET_ERROR == bind(fd, (struct sockaddr*)&addr, sizeof(addr)))
