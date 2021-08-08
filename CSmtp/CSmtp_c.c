@@ -391,11 +391,61 @@ enum ErrNo sendAttachment()
 }
 
 
-
-
-static const char base64Char[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
-const char* base64Encode(const char* origSigned, size_t origLength)
+//自己仿照的代码
+const char* base64Encode(const char* data, size_t len)
 {
+	static const char base64Char[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+	if (data == NULL)
+		return NULL;
+	uint8_t const* srcStr = (uint8_t const*)data;
+
+	//以24Bit(3个字节)为单位划分,data能够划分成多少块
+	uint32_t dataBlock = len / 3;
+	//判断划分之后有没有剩余的字节(剩余的字节需要填充=)
+	bool havePadding = len % 3;		//0 1
+	size_t paddingByte = len % 3;
+	//计算编码之后总字节数,有剩余的补上一个单位（data中三个字符变成四个字符）
+	uint32_t resultByte = 4 * (dataBlock + havePadding);
+
+	//申请内存存放编码之后的数据,多申请三个字节前两个用来填充=，最后一个用来存放\0
+	char* encode = calloc(resultByte + 3, sizeof(char));
+	if (encode == NULL)
+		return	NULL;
+
+	//把data的三个字节转化为base64的四个字符
+	size_t i = 0;
+	for (; i < dataBlock; ++i)
+	{
+		encode[4 * i + 0] = base64Char[srcStr[3 * i] >> 2];												//6
+		encode[4 * i + 1] = base64Char[((srcStr[3 * i] & 0x3) << 4) | (srcStr[3 * i + 1] >> 4)];				//2 + 4
+		encode[4 * i + 2] = base64Char[((srcStr[3 * i + 1] & 0xF) << 2) | (srcStr[3 * i + 2] >> 6)];		//4 + 2
+		encode[4 * i + 3] = base64Char[srcStr[3 * i + 2] & 0x3F];								//6
+	}
+
+	//处理剩下的字节(只可能剩下0个，1个或者2个)
+	if (havePadding)
+	{
+		encode[4 * i + 0] = base64Char[srcStr[3 * i] >> 2];
+		if (paddingByte == 1)		//留下一个字节补两个字节
+		{
+			encode[4 * i + 1] = base64Char[(srcStr[3 * i] & 0x3) << 4];
+			encode[4 * i + 2] = '=';
+		}
+		else if (paddingByte == 2)	//留下两个字节补一个字节
+		{
+			encode[4 * i + 1] = base64Char[((srcStr[3 * i] & 0x3) << 4) | srcStr[3 * i + 1] >> 4];
+			encode[4 * i + 2] = base64Char[(srcStr[3 * i + 1] & 0xF) << 2];
+		}
+		encode[4 * i + 3] = '=';
+	}
+	//申请内存时全部初始化为0了，这里不需要再补\0
+	//encode[resultByte] = '\n';
+	return encode;
+}
+//网络代码
+const char* base64Encode_test(const char* origSigned, size_t origLength)
+{
+	static const char base64Char[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 	unsigned char const* orig = (unsigned char const*)origSigned; // in case any input bytes have the MSB set
 	if (orig == NULL) return NULL;
 
