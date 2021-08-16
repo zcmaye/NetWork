@@ -1,33 +1,27 @@
 ﻿#include "common.h"
 #include<stdio.h>
 #include<tcpSocket.h>
-void send_state(ClientInfo* info, const char* msg)
+void send_state(ClientInfo* info)
 {
-	if (msg == NULL)
-		return;
-	if (SOCKET_ERROR == send(info->fd, msg, strlen(msg), 0))
+	if (SOCKET_ERROR == send(info->fd, info->message, strlen(info->message), 0))
 	{
 		err("send");
 		return;
 	}
-	
-	//send(info->fd, "\r\n", 1, 0);
-	//send(info->fd, "\r\n", 1, 0);
 }
 
 void welcome(ClientInfo* info)
 {
-	char* wel = "220 welcome maye ftp server.\r\n";
-	send_state(info, wel);
+	info->message = "220 welcome maye ftp server.\r\n";
+	send_state(info);
 }
 
-CmdList parseCmd(const char* buf)
+CmdList parseCmd(ClientInfo* info,const char* buf)
 {
-	char cmd[10] = { 0 };
-	sscanf_s(buf, "%s", cmd,10);
+	sscanf_s(buf, "%s %s", info->cmd,sizeof(info->cmd),info->arg,sizeof(info->arg));
 	for (size_t i = 0; i < sizeof(cmdlist_str)/sizeof(char*); i++)
 	{
-		if (_stricmp(cmd, cmdlist_str[i]) == 0)
+		if (_stricmp(info->cmd, cmdlist_str[i]) == 0)
 		{
 			return i;
 		}
@@ -111,32 +105,36 @@ void exeCmd(ClientInfo* info,CmdList cmd)
 	case C_ERROR:
 	default:
 		printf("无法解析的命令:%d\n", cmd);
-		info->message = NULL;
+		info->message = "500 Syntax error, command unrecognized. This may include errors such as command line too long.";
+		send_state(info);
 		break;
 	}
-	send_state(info, info->message);
 }
 
 void ftp_opts(ClientInfo* info)
 {
 	info->message = "200 OPTS command successful - uft8 encodeing now on.\r\n";
+	send_state(info);
 }
 
 void ftp_user(ClientInfo* info)
 {
 	info->message = "331 User name okay, need password\r\n";
 	//info->message = "530 Invalid username\r\n";	//error
+	send_state(info);
 }
 void ftp_pass(ClientInfo* info)
 {
 	info->message = "230 Login successful\r\n";
 	//info->message = "500 Invalid username or password\r\n";	//error
+	send_state(info);
 }
 
 void ftp_pwd(ClientInfo* info)
 {
 	info->message = "257 maye/aaa\r\n";
 	//info->message = "550 Failed to get pwd.\r\n";	//error
+	send_state(info);
 }
 
 void ftp_cwd(ClientInfo* info)
@@ -144,10 +142,12 @@ void ftp_cwd(ClientInfo* info)
 	info->message = "250 Directory successfully changed.\r\n";
 	//info->message = "550 Failed to change directory.\r\n";
 	//info->message = "500 Login with USER and PASS.\r\n";	//未登录
+	send_state(info);
 }
 
 void ftp_mkd(ClientInfo* info)
 {
+
 
 }
 
@@ -208,15 +208,52 @@ void ftp_mdtm(ClientInfo* info)
 {
 
 }
+static socket_t connectToClient(ClientInfo* info)
+{
+	char* str = info->arg;
+	//把所有的,替换成.		//"127.0.0.1.56.89"
+	for (int i = 0; str[i]; i++)
+	{
+		if (str[i] == ',')
+			str[i] = '.';
+	}
+	//把最后两个.替换成空格	//"127.0.0.1 56 89"
+	for (size_t i = 0; i < 2; i++)
+	{
+		char* rfirstcomma = strrchr(str, '.');	//倒数第一个逗号
+		*rfirstcomma = ' ';
+	}
+	char ip[16] = { 0 };
+	UINT32 p1 = 0, p2 = 0;
+	sscanf_s(str, "%s %u %u", ip, 16, &p1, &p2);
+
+	//开始连接
+	info->datafd = create_clientSocket(ip, p1 * 256 + p2);
+	return info->datafd;
+}
 
 void ftp_nlst(ClientInfo* info)
 {
+	info->message = "125 Data connection already open; Transfer starting.\r\n";
+	send_state(info);
+	//建立连接
+	connectToClient(info);
 
+	//发送ls信息
+	send(info->datafd, "01 学习C语言准备.pptx\r\n", 23, 0);
+
+	//传完就关闭数据连接
+	closesocket(info->datafd);
+
+	//发送传输完成状态
+	info->message = "226 Transfer complete.\r\n";
+	send_state(info);
 }
 
 void ftp_port(ClientInfo* info)
 {
-
+	info->message = "200 PORT command successful.\r\n";
+	send_state(info);
 }
 
 void ftp_rnfr(ClientInfo* info)

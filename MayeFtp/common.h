@@ -4,9 +4,11 @@ typedef  _int64 socket_t;
 /* 保存客户端的信息 */
 typedef struct ClientInfo
 {
-	socket_t fd;
+	socket_t fd;			//命令连接
+	socket_t datafd;		//数据连接
 	const char* message;
-	char cmd[10];
+	char cmd[5];			//客户端发过来的命令
+	char arg[128];			//命令后面的参数
 }ClientInfo;
 
 
@@ -14,29 +16,29 @@ typedef struct ClientInfo
 typedef enum CmdList
 {
 	C_ERROR = -1,
-	C_ABOR, 
-	C_CWD, 
+	C_ABOR,		//cmd ftp 显示无效命令
+	C_CWD,		//cmd ftp 显示无效命令
 	C_DELE, 
 	C_LIST,		//->dir
-	C_MDTM, 
+	C_MDTM,		//cmd ftp 显示无效命令
 	C_MKD, 
 	C_NLST,		//name list  ->ls
-	C_PASS, 
-	C_PASV,
-	C_PORT, 
-	C_XPWD, 
-	C_QUIT, 
-	C_RETR, 
-	C_RMD, 
-	C_RNFR, 
-	C_RNTO, 
-	C_SITE, 
-	C_SIZE,
-	C_STOR, 
-	C_TYPE, 
-	C_USER, 
-	C_NOOP, 
-	C_OPTS
+	C_PASS,		//cmd ftp 显示无效命令
+	C_PASV,		//LITERAL PASV	命令
+	C_PORT,		//ls 等命令时，会自动发送
+	C_XPWD,		//pwd命令
+	C_QUIT,		//quit
+	C_RETR,		//cmd ftp 显示无效命令
+	C_RMD,		//rmd
+	C_RNFR,		//
+	C_RNTO,		//
+	C_SITE,		//
+	C_SIZE,		//
+	C_STOR,		//
+	C_TYPE,		//type 查看传输模式
+	C_USER,		//user 切换用户
+	C_NOOP,		//
+	C_OPTS		//连接ftp服务器会发送
 }CmdList;
 
 /* 命令列表的字符串映射 */
@@ -47,13 +49,13 @@ static const char* cmdlist_str[] =
   "STOR", "TYPE", "USER", "NOOP","OPTS"
 };
 
-void send_state(ClientInfo* ,const char* msg);
+void send_state(ClientInfo*);
 
 //给客户端发送欢迎消息
 void welcome(ClientInfo*);
 
 //解析客户端命令
-CmdList  parseCmd(const char* buf);
+CmdList  parseCmd(ClientInfo* info,const char* buf);
 
 //执行命令
 void exeCmd(ClientInfo*,CmdList cmd);

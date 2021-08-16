@@ -2,6 +2,7 @@
 #include<tcpSocket.h>
 #pragma comment(lib,"TcpSocket.lib")
 #include"common.h"
+
 int main()
 {
 	init_Socket();
@@ -11,7 +12,7 @@ int main()
 	printf("have new connect\n");
 
 
-	ClientInfo clientInfo;
+	ClientInfo clientInfo = {0};
 	clientInfo.fd = clifd;
 	welcome(&clientInfo);
 	while (true)
@@ -19,7 +20,7 @@ int main()
 		memset(recvBuf, 0, sizeof(recvBuf));
 		recv(clifd, recvBuf, 1024, 0);
 		printf("main>%s",recvBuf);
-		exeCmd(&clientInfo,parseCmd(recvBuf));
+		exeCmd(&clientInfo,parseCmd(&clientInfo,recvBuf));
 
 	}
 	close_Socket();
