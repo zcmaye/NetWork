@@ -1,4 +1,4 @@
-#include<stdio.h>
+﻿#include<stdio.h>
 #include<tcpSocket.h>
 #pragma comment(lib,"TcpSocket.lib")
 #include"common.h"
@@ -16,8 +16,7 @@ int main()
 	welcome(&clientInfo);
 	while (true)
 	{	
-		
-		
+		memset(recvBuf, 0, sizeof(recvBuf));
 		recv(clifd, recvBuf, 1024, 0);
 		printf("main>%s",recvBuf);
 		exeCmd(&clientInfo,parseCmd(recvBuf));

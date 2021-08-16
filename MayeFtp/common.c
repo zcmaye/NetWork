@@ -1,4 +1,4 @@
-#include "common.h"
+ï»¿#include "common.h"
 #include<stdio.h>
 #include<tcpSocket.h>
 void send_state(ClientInfo* info, const char* msg)
@@ -40,59 +40,77 @@ void exeCmd(ClientInfo* info,CmdList cmd)
 	switch (cmd)
 	{
 	case C_ABOR:
+		ftp_abor(info);
 		break;
 	case C_CWD:
+		ftp_cwd(info);
 		break;
 	case C_DELE:
+		ftp_dele(info);
 		break;
 	case C_LIST:
+		ftp_list(info);
 		break;
 	case C_MDTM:
+		ftp_mdtm(info);
 		break;
 	case C_MKD:
+		ftp_mkd(info);
 		break;
 	case C_NLST:
+		ftp_nlst(info);
 		break;
 	case C_PASS:
 		ftp_pass(info);
 		break;
 	case C_PASV:
+		ftp_pasv(info);
 		break;
 	case C_PORT:
+		ftp_port(info);
 		break;
 	case C_XPWD:
 		ftp_pwd(info);
 		break;
 	case C_QUIT:
+		ftp_quit(info);
 		break;
 	case C_RETR:
+		ftp_quit(info);
 		break;
 	case C_RMD:
+		ftp_rmd(info);
 		break;
 	case C_RNFR:
+		ftp_rnfr(info);
 		break;
 	case C_RNTO:
+		ftp_rnto(info);
 		break;
 	case C_SITE:
+		ftp_site(info);	//1
 		break;
 	case C_SIZE:
+		ftp_size(info);
 		break;
 	case C_STOR:
+		ftp_stor(info);
 		break;
 	case C_TYPE:
+		ftp_type(info);
 		break;
 	case C_USER:
 		ftp_user(info);
-		printf("C_USER ");
 		break;
 	case C_NOOP:
+		ftp_noop(info);
 		break;
 	case C_OPTS:
 		ftp_opts(info);
 		break;
 	case C_ERROR:
 	default:
-		printf("ÎŞ·¨½âÎöµÄÃüÁî:%d\n", cmd);
+		printf("æ— æ³•è§£æçš„å‘½ä»¤:%d\n", cmd);
 		info->message = NULL;
 		break;
 	}
@@ -125,7 +143,7 @@ void ftp_cwd(ClientInfo* info)
 {
 	info->message = "250 Directory successfully changed.\r\n";
 	//info->message = "550 Failed to change directory.\r\n";
-	//info->message = "500 Login with USER and PASS.\r\n";	//Î´µÇÂ¼
+	//info->message = "500 Login with USER and PASS.\r\n";	//æœªç™»å½•
 }
 
 void ftp_mkd(ClientInfo* info)
@@ -179,6 +197,44 @@ void ftp_type(ClientInfo* info)
 }
 
 void ftp_abor(ClientInfo* info)
+{
+
+}
+
+
+
+//æ–‡ä»¶æœ€åä¿®æ”¹æ—¶é—´
+void ftp_mdtm(ClientInfo* info)
+{
+
+}
+
+void ftp_nlst(ClientInfo* info)
+{
+
+}
+
+void ftp_port(ClientInfo* info)
+{
+
+}
+
+void ftp_rnfr(ClientInfo* info)
+{
+
+}
+
+void ftp_rnto(ClientInfo* info)
+{
+
+}
+
+void ftp_noop(ClientInfo* info)
+{
+
+}
+
+void ftp_site(ClientInfo* info)
 {
 
 }

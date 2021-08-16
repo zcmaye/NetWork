@@ -1,7 +1,7 @@
-#pragma once
+ï»¿#pragma once
 typedef  _int64 socket_t;
 
-/* ±£´æ¿Í»§¶ËµÄĞÅÏ¢ */
+/* ä¿å­˜å®¢æˆ·ç«¯çš„ä¿¡æ¯ */
 typedef struct ClientInfo
 {
 	socket_t fd;
@@ -10,16 +10,36 @@ typedef struct ClientInfo
 }ClientInfo;
 
 
-/* ÃüÁîÁĞ±í */
+/* å‘½ä»¤åˆ—è¡¨ */
 typedef enum CmdList
 {
 	C_ERROR = -1,
-	C_ABOR, C_CWD, C_DELE, C_LIST, C_MDTM, C_MKD, C_NLST, C_PASS, C_PASV,
-	C_PORT, C_XPWD, C_QUIT, C_RETR, C_RMD, C_RNFR, C_RNTO, C_SITE, C_SIZE,
-	C_STOR, C_TYPE, C_USER, C_NOOP, C_OPTS
+	C_ABOR, 
+	C_CWD, 
+	C_DELE, 
+	C_LIST,		//->dir
+	C_MDTM, 
+	C_MKD, 
+	C_NLST,		//name list  ->ls
+	C_PASS, 
+	C_PASV,
+	C_PORT, 
+	C_XPWD, 
+	C_QUIT, 
+	C_RETR, 
+	C_RMD, 
+	C_RNFR, 
+	C_RNTO, 
+	C_SITE, 
+	C_SIZE,
+	C_STOR, 
+	C_TYPE, 
+	C_USER, 
+	C_NOOP, 
+	C_OPTS
 }CmdList;
 
-/* ÃüÁîÁĞ±íµÄ×Ö·û´®Ó³Éä */
+/* å‘½ä»¤åˆ—è¡¨çš„å­—ç¬¦ä¸²æ˜ å°„ */
 static const char* cmdlist_str[] =
 {
   "ABOR", "CWD", "DELE", "LIST", "MDTM", "MKD", "NLST", "PASS", "PASV",
@@ -29,23 +49,23 @@ static const char* cmdlist_str[] =
 
 void send_state(ClientInfo* ,const char* msg);
 
-//¸ø¿Í»§¶Ë·¢ËÍ»¶Ó­ÏûÏ¢
+//ç»™å®¢æˆ·ç«¯å‘é€æ¬¢è¿æ¶ˆæ¯
 void welcome(ClientInfo*);
 
-//½âÎö¿Í»§¶ËÃüÁî
+//è§£æå®¢æˆ·ç«¯å‘½ä»¤
 CmdList  parseCmd(const char* buf);
 
-//Ö´ĞĞÃüÁî
+//æ‰§è¡Œå‘½ä»¤
 void exeCmd(ClientInfo*,CmdList cmd);
 
 
 
-//´¦ÀíÃüÁî
+//å¤„ç†å‘½ä»¤
 void ftp_opts(ClientInfo* info);
 void ftp_user(ClientInfo*);
 void ftp_pass(ClientInfo*);
 void ftp_pwd(ClientInfo*);
-void ftp_cwd(ClientInfo*);		//¸Ä±ä¹¤×÷Ä¿Â¼
+void ftp_cwd(ClientInfo*);		//æ”¹å˜å·¥ä½œç›®å½•
 void ftp_mkd(ClientInfo*);
 void ftp_rmd(ClientInfo*);
 void ftp_pasv(ClientInfo*);
@@ -57,3 +77,11 @@ void ftp_size(ClientInfo*);
 void ftp_quit(ClientInfo*);
 void ftp_type(ClientInfo*);
 void ftp_abor(ClientInfo*);
+
+void ftp_mdtm(ClientInfo*);	//æ–‡ä»¶æœ€åä¿®æ”¹æ—¶é—´
+void ftp_nlst(ClientInfo*);
+void ftp_port(ClientInfo*);
+void ftp_rnfr(ClientInfo*);
+void ftp_rnto(ClientInfo*);
+void ftp_noop(ClientInfo*);
+void ftp_site(ClientInfo*);
