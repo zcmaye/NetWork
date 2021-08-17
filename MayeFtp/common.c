@@ -1,6 +1,16 @@
 ﻿#include "common.h"
 #include<stdio.h>
 #include<tcpSocket.h>
+
+ClientInfo* createClientInfo()
+{
+	ClientInfo* info = calloc(1, sizeof(ClientInfo));
+	if (info == NULL)
+		return NULL;
+	info->dir = createDir("./files");
+	return info;
+}
+
 void send_state(ClientInfo* info)
 {
 	if (SOCKET_ERROR == send(info->fd, info->message, strlen(info->message), 0))
@@ -70,7 +80,7 @@ void exeCmd(ClientInfo* info,CmdList cmd)
 		ftp_quit(info);
 		break;
 	case C_RETR:
-		ftp_quit(info);
+		ftp_retr(info);
 		break;
 	case C_RMD:
 		ftp_rmd(info);
@@ -123,6 +133,7 @@ void ftp_user(ClientInfo* info)
 	//info->message = "530 Invalid username\r\n";	//error
 	send_state(info);
 }
+
 void ftp_pass(ClientInfo* info)
 {
 	info->message = "230 Login successful\r\n";
@@ -168,6 +179,7 @@ void ftp_list(ClientInfo* info)
 
 void ftp_retr(ClientInfo* info)
 {
+	printf("fileName:%s\n", info->arg);
 
 }
 
@@ -188,7 +200,9 @@ void ftp_size(ClientInfo* info)
 
 void ftp_quit(ClientInfo* info)
 {
-
+	info->message = "221 Goodbye, friend. I never thought I'd die like this.\n";
+	send_state(info);
+	closesocket(info->fd);
 }
 
 void ftp_type(ClientInfo* info)
@@ -240,7 +254,7 @@ void ftp_nlst(ClientInfo* info)
 	connectToClient(info);
 
 	//发送ls信息
-	send(info->datafd, "01 学习C语言准备.pptx\r\n", 23, 0);
+	send(info->datafd, u8"01 学习C语言准备.pptx\r\n", 29, 0);
 
 	//传完就关闭数据连接
 	closesocket(info->datafd);

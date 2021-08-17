@@ -1,4 +1,5 @@
 ﻿#pragma once
+#include"dir.h"
 typedef  _int64 socket_t;
 
 /* 保存客户端的信息 */
@@ -6,11 +7,14 @@ typedef struct ClientInfo
 {
 	socket_t fd;			//命令连接
 	socket_t datafd;		//数据连接
-	const char* message;
+	
+	const char* message;	//状态码和描述信息
+	
 	char cmd[5];			//客户端发过来的命令
 	char arg[128];			//命令后面的参数
-}ClientInfo;
 
+	Dir *dir;				//操作目录
+}ClientInfo;
 
 /* 命令列表 */
 typedef enum CmdList
@@ -19,7 +23,7 @@ typedef enum CmdList
 	C_ABOR,		//cmd ftp 显示无效命令
 	C_CWD,		//cmd ftp 显示无效命令
 	C_DELE, 
-	C_LIST,		//->dir
+	C_LIST,		//->dir 显示远程目录中文件和子目录的目录列表。
 	C_MDTM,		//cmd ftp 显示无效命令
 	C_MKD, 
 	C_NLST,		//name list  ->ls
@@ -28,13 +32,13 @@ typedef enum CmdList
 	C_PORT,		//ls 等命令时，会自动发送
 	C_XPWD,		//pwd命令
 	C_QUIT,		//quit
-	C_RETR,		//cmd ftp 显示无效命令
+	C_RETR,		//get
 	C_RMD,		//rmd
 	C_RNFR,		//
 	C_RNTO,		//
 	C_SITE,		//
 	C_SIZE,		//
-	C_STOR,		//
+	C_STOR,		//put
 	C_TYPE,		//type 查看传输模式
 	C_USER,		//user 切换用户
 	C_NOOP,		//
@@ -48,6 +52,8 @@ static const char* cmdlist_str[] =
   "PORT", "XPWD", "QUIT", "RETR", "RMD", "RNFR", "RNTO", "SITE", "SIZE",
   "STOR", "TYPE", "USER", "NOOP","OPTS"
 };
+
+ClientInfo* createClientInfo();
 
 void send_state(ClientInfo*);
 
@@ -72,11 +78,11 @@ void ftp_mkd(ClientInfo*);
 void ftp_rmd(ClientInfo*);
 void ftp_pasv(ClientInfo*);
 void ftp_list(ClientInfo*);
-void ftp_retr(ClientInfo*);
+void ftp_retr(ClientInfo*);		//下载文件
 void ftp_stor(ClientInfo*);
 void ftp_dele(ClientInfo*);
 void ftp_size(ClientInfo*);
-void ftp_quit(ClientInfo*);
+void ftp_quit(ClientInfo*);		//退出
 void ftp_type(ClientInfo*);
 void ftp_abor(ClientInfo*);
 
