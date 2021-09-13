@@ -163,6 +163,10 @@ built_in_function bool connectToHost()
 //登录
 built_in_function enum ErrNo login()
 {
+	if (!connectToHost())
+	{
+		return NetWorkError;
+	}
 	char sendBuf[BUFSIZ] = { 0 };
 	sprintf(sendBuf, "EHLO %s \r\n", g_csmtp.userMail);
 	if (!sendMsg(sendBuf) || !recvMsg())
@@ -233,6 +237,7 @@ built_in_function bool sendEmailHead()
 	{
 		return false;
 	}
+	return true;
 }
 //格式化邮件头部
 built_in_function void FormatEmailHead(char* str)
@@ -268,7 +273,7 @@ built_in_function bool sendTextbody()
 	strcat(sendBuf, "\r\n\r\n");
 	return sendMsg(sendBuf);
 }
-//拜拜
+//当前邮件发送结束
 built_in_function bool sendEnd() /*发送结尾信息*/
 {
 	char sendBuf[BUFSIZ] = { 0 };
@@ -277,25 +282,17 @@ built_in_function bool sendEnd() /*发送结尾信息*/
 	{
 		return false;
 	}
-	printf("%s\b", sendBuf);
-
-	sprintf(sendBuf, "QUIT\r\n%c", '\0');
-	return (sendMsg(sendBuf) && recvMsg());
+	return true;
+}
+//退出登录，和服务器说拜拜
+bool quit()
+{
+	return (sendMsg("QUIT\r\n") && recvMsg());
 }
 
 //发送邮件
 enum ErrNo sendEmal()
 {
-	if (!connectToHost())
-	{
-		return NetWorkError;
-	}
-
-	enum ErrorNo ret = login();
-	if (ret != NoError)
-	{
-		return ret;
-	}
 
 	if (!sendEmailHead())
 	{
@@ -307,10 +304,12 @@ enum ErrNo sendEmal()
 		return NetWorkError;
 	}
 
-	ret = sendAttachment();
+	int ret = sendAttachment();
 	if (ret != NoError)
 	{
-		return ret;
+		printf("附件发送失败~ %d\n",ret);
+		//附件发送失败继续发送就好了
+		//return ret;
 	}
 
 	if (!sendEnd())
