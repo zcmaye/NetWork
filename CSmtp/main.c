@@ -2,7 +2,7 @@
 #pragma comment(lib,"TcpSocket.lib")
 int main()
 {
-	initSmtp("xxx@qq.com", "xxx", "xxx@qq.com");
+	initSmtp("842831611@qq.com", "copfxxjdwrwjbfbf", "825943234@qq.com");
 
 	setPortDomain(25, "smtp.qq.com");
 	setMailContent("hello", "你好我是邮件正文");

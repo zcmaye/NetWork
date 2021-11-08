@@ -4,7 +4,7 @@
 int main()
 {
 	init_Socket();
-	SOCKET serfd = create_serverSocket(8080);
+	SOCKET serfd = create_serverSocket(80);
 	printf("Server start succeed,wait connect...\n");
 
 	while (true)

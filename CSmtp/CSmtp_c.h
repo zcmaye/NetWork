@@ -1,5 +1,6 @@
 ﻿#pragma once
 #include"tcpSocket.h"
+#pragma comment(lib,"TcpSocket.lib")
 
 #include<WS2tcpip.h>
 #include<string.h>

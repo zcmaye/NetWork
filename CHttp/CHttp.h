@@ -5,7 +5,7 @@
 void accept_request(SOCKET fd);
 
 //获取一行数据(数据以\r\n结尾)
-int getline(SOCKET fd,char*buf,int size);
+int readLine(SOCKET fd,char*buf,int size);
 //获取方法和请求的连接
 int getMothedAndUrl(SOCKET fd,char*buf,int size);
 //404

@@ -213,19 +213,19 @@ built_in_function enum ErrNo login()
 built_in_function bool sendEmailHead()
 {
 	char sendBuf[BUFSIZ] = { 0 };
-	sprintf(sendBuf, "MAIL FROM:<%s>\r\n%c", g_csmtp.userMail, '\0');
+	sprintf(sendBuf, "MAIL FROM:<%s>\r\n", g_csmtp.userMail);
 	if (!sendMsg(sendBuf) || !recvMsg())
 	{
 		return false;
 	}
 
-	sprintf(sendBuf, "RCPT TO:<%s>\r\n%c", g_csmtp.toMail, '\0');
+	sprintf(sendBuf, "RCPT TO:<%s>\r\n", g_csmtp.toMail);
 	if (!sendMsg(sendBuf) || !recvMsg())
 	{
 		return false;
 	}
 
-	sprintf(sendBuf, "DATA\r\n%c", '\0');
+	sprintf(sendBuf, "DATA\r\n");
 	if (!sendMsg(sendBuf) || !recvMsg())
 	{
 		return false;
@@ -245,22 +245,22 @@ built_in_function void FormatEmailHead(char* str)
 	memset(str, 0, BUFSIZ);
 
 	char tstr[128] = { 0 };
-	sprintf(tstr, "From: %s\r\n%c", g_csmtp.userMail, '\0');
+	sprintf(tstr, "From:%s\r\n", g_csmtp.userMail);
 	strcat(str, tstr);
 
-	sprintf(tstr, "To: %s\r\n%c", g_csmtp.toMail, '\0');
+	sprintf(tstr, "To:%s\r\n", g_csmtp.toMail);
 	strcat(str, tstr);
 
-	sprintf(tstr, "Subject: %s\r\n%c", g_csmtp.title, '\0');
+	sprintf(tstr, "Subject:%s\r\n", g_csmtp.title);
 	strcat(str, tstr);
 
-	sprintf(tstr, "MINE-Version: 1.0\r\n%c", '\0');
+	sprintf(tstr, "MINE-Version:1.0\r\n");
 	strcat(str, tstr);
 
 	sprintf(tstr, "Content-Type:multipart/mixed;boundary=maye\r\n%c", '\0');
 	strcat(str, tstr);
 
-	sprintf(tstr, "\r\n%c", '\0');
+	sprintf(tstr, "\r\n");
 	strcat(str, tstr);
 }
 //发送正文
@@ -293,7 +293,11 @@ bool quit()
 //发送邮件
 enum ErrNo sendEmal()
 {
-
+	if (login() != NoError)
+	{
+		printf("用户或密码错误");
+		return UserPassError;
+	}
 	if (!sendEmailHead())
 	{
 		return NetWorkError;

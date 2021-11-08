@@ -16,16 +16,18 @@ enum Method
 void accept_request(SOCKET fd)
 {
 	char resPath[128] = "./zcMaye";		//请求的资源路径(网站主目录)
-	char url[128] = { 0 };				//请求的资源url
+	char url[128] = { 0 };				//请求的资源url (主目录+请求的资源)
 	int method = getMothedAndUrl(fd, url, 128);
 	switch (method)
 	{
 	case M_GET:
 		//printf("GET:->%s\n", url);
+		//如果直接访问网址127.0.0.1  就返回index.html
 		if (stricmp(url, "/") == 0)
 		{
 			strcat_s(resPath, 128, "/index.html");
 		}
+		//否则返回指定的资源
 		else
 		{
 			strcat_s(resPath, 128, url);
@@ -43,6 +45,7 @@ void accept_request(SOCKET fd)
 			//}
 			//文件不存返回404
 			notFound(fd);
+			send_file(fd, "./zcMaye/notFound404.html");
 		}
 		else
 		{
@@ -59,7 +62,7 @@ void accept_request(SOCKET fd)
 	}
 }
 
-int getline(SOCKET fd, char* buf, int size)
+int readLine(SOCKET fd, char* buf, int size)
 {
 	char c = '\0';
 	int index = 0;
@@ -83,7 +86,7 @@ int getline(SOCKET fd, char* buf, int size)
 int getMothedAndUrl(SOCKET fd, char* buf, int size)
 {
 	char recvBuf[1024] = { 0 };
-	int len = getline(fd, recvBuf, 1024);
+	int len = readLine(fd, recvBuf, 1024);
 	//printf(" %s\n", recvBuf);
 
 	char method[256] = { 0 };	//获取请求方法 GET POST ...
@@ -129,8 +132,6 @@ void notFound(SOCKET fd)
 	send(fd, buf, strlen(buf), 0);
 	sprintf(buf, "\r\n");
 	send(fd, buf, strlen(buf), 0);
-
-	send_file(fd,"./zcMaye/notFound404.html");
 }
 
 void send_file(SOCKET fd, const char* fileName)
@@ -139,7 +140,6 @@ void send_file(SOCKET fd, const char* fileName)
 	if (!fp)
 	{
 		perror("open file failed");
-		notFound(fd);
 		return;
 	}
 	while (!feof(fp))

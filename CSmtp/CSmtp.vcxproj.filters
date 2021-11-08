@@ -18,12 +18,18 @@
     <ClInclude Include="CSmtp_c.h">
       <Filter>头文件</Filter>
     </ClInclude>
+    <ClInclude Include="..\tcpSocket\include\tcpSocket.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="CSmtp_c.c">
       <Filter>源文件</Filter>
     </ClCompile>
     <ClCompile Include="main.c">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="..\tcpSocket\source\tcpSocket.c">
       <Filter>源文件</Filter>
     </ClCompile>
   </ItemGroup>
